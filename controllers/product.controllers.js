@@ -86,6 +86,11 @@ export const createProduct = async (req, res, next) => {
       resource_type: "image",        // use auto to detect png/jpg/webp
       // allowed_formats: ["jpg", "png", "webp"]
     }, async (err, result) => {
+
+      if (err) {
+        return res.status(500).json({ message: "error happened while uploading image" })
+      }
+
       const createdProduct = await Product.create({
         title,
         description,
@@ -117,9 +122,6 @@ export const updateProduct = async (req, res, next) => {
     if (sizes) sizes = JSON.parse(req.body.sizes);
     if (colors) colors = JSON.parse(req.body.colors)
 
-
-    const file = req.file?.filename
-    const imgPath = file ? `/images/${file}` : null;
 
     const stream = cloudinary.v2.uploader.upload_stream({
       folder: "products",
