@@ -1,6 +1,9 @@
 import { isValidObjectId } from "mongoose"
 import { logger } from "../index.js"
 import Product from "../models/product.model.js"
+import cloudinary from 'cloudinary'
+import { Readable } from 'stream'
+
 
 export const getProducts = async (req, res, next) => {
   try {
@@ -58,7 +61,13 @@ export const getOneProduct = async (req, res, next) => {
     return res.status(500).json({ message: error.message });
   }
 }
-
+/**
+ * 
+ * @param {import("express").Request} req 
+ * @param {*} res 
+ * @param {*} next 
+ * @returns 
+ */
 export const createProduct = async (req, res, next) => {
   try {
     let { title, description, price, colors, stock, category, sizes } = req.body;
@@ -70,25 +79,31 @@ export const createProduct = async (req, res, next) => {
     if (colors) colors = JSON.parse(req.body.colors)
 
 
-    const file = req.file?.filename
-    const imgPath = file ? `/images/${file}` : null;
+    if (!req.file) return res.status(400).json({ message: 'Image is required' });
 
-    const createdProduct = await Product.create({
-      title,
-      description,
-      price,
-      category,
-      colors,
-      stock,
-      imgPath,
-      sizes,
-      userId: req.user._id
+    const stream = cloudinary.v2.uploader.upload_stream({
+      folder: "products",
+      resource_type: "image",        // use auto to detect png/jpg/webp
+      // allowed_formats: ["jpg", "png", "webp"]
+    }, async (err, result) => {
+      const createdProduct = await Product.create({
+        title,
+        description,
+        price,
+        category,
+        colors,
+        stock,
+        imgPath: result.secure_url,
+        sizes,
+        userId: req.user._id
+      })
+
+      return res.json({ data: createdProduct })
     })
-
-    return res.json({ data: createdProduct })
+    Readable.from(req.file.buffer).pipe(stream)
   } catch (error) {
-    logger.error(error)
-    return res.status(500).json({ message: error.message });
+    logger.error(error.message)
+    return res.status(500).json({ message: error });
   }
 }
 
@@ -106,18 +121,26 @@ export const updateProduct = async (req, res, next) => {
     const file = req.file?.filename
     const imgPath = file ? `/images/${file}` : null;
 
-    const updatedProduct = await Product.findByIdAndUpdate(_id, {
-      title,
-      description,
-      price,
-      category,
-      colors,
-      stock,
-      imgPath,
-      sizes
-    }, { new: true })
+    const stream = cloudinary.v2.uploader.upload_stream({
+      folder: "products",
+      resource_type: "image",        // use auto to detect png/jpg/webp
+      // allowed_formats: ["jpg", "png", "webp"]
+    }, async (err, result) => {
+      const updatedProduct = await Product.findByIdAndUpdate(_id, {
+        title,
+        description,
+        price,
+        category,
+        colors,
+        stock,
+        imgPath: result.secure_url,
+        sizes,
+        userId: req.user._id
+      }, { new: true })
+      return res.json({ data: updatedProduct })
+    })
 
-    return res.json({ data: updatedProduct })
+    Readable.from(req.file.buffer).pipe(stream)
   } catch (error) {
     logger.error(error)
     return res.status(500).json({ message: error.message });

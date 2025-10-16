@@ -9,7 +9,16 @@ import winston from 'winston';
 import cors from 'cors'
 import cookieParser from 'cookie-parser';
 import reviewRouter from './routes/review.route.js';
+// import cloudinary from './config/cloudinary.js'
+import { v2 as cloudinary } from 'cloudinary';
 dotenv.config()
+
+// cloudinary config
+cloudinary.config({
+  cloud_name: 'dfuu4nifi',
+  api_key: process.env.API_KEY,
+  api_secret: process.env.API_SECRET
+});
 
 export const logger = winston.createLogger({
   level: 'info',
