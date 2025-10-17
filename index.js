@@ -65,7 +65,7 @@ app.use("/images", express.static(path.join(__dirname, 'images')))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cors({
-  origin: ['http://localhost:5173'],
+  origin: [process.env.FRONTEND_SITE],
   credentials: true
 }))
 app.use(cookieParser(process.env.SECRET_COOKIE_KEY))
