@@ -3,7 +3,7 @@ import User from "../models/user.model.js";
 
 export const isAuth = async (req, res, next) => {
   try {
-
+    console.log(req.cookies)
     const token = req.cookies.token
     console.log(token)
     const decoded = jwt.verify(token, process.env.JWT_SECRET)

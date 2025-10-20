@@ -1,7 +1,7 @@
+import './config/env.js'
 import express from 'express'
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv'
 import mongoose from 'mongoose';
 import authRouter from './routes/auth.route.js';
 import productRouter from './routes/product.route.js';
@@ -11,7 +11,7 @@ import cookieParser from 'cookie-parser';
 import reviewRouter from './routes/review.route.js';
 // import cloudinary from './config/cloudinary.js'
 import { v2 as cloudinary } from 'cloudinary';
-dotenv.config()
+import paypalRouter from './routes/paypal.route.js';
 
 // cloudinary config
 cloudinary.config({
@@ -29,7 +29,7 @@ export const logger = winston.createLogger({
     winston.format.printf(({ level, message, timestamp, stack }) => {
       return stack ?
         `${timestamp} [${level}]: ${stack}` :
-        `${timestamp} [${level}]: ${message}`
+        `${timestamp} [${level}]: ${String(message)}`
     })
   ),
   transports: [
@@ -75,3 +75,4 @@ app.use(cookieParser(process.env.SECRET_COOKIE_KEY))
 app.use("/auth", authRouter)
 app.use(productRouter)
 app.use('/reviews', reviewRouter)
+app.use('/orders', paypalRouter)
