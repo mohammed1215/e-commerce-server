@@ -14,6 +14,8 @@ router.post('/create-order', isAuth, async (req, res) => {
     const userId = req.user._id
     const { cart, total } = req.body;
 
+    console.log({ cart, total })
+
     if (!cart) {
       return res.status(400).json({ message: "cart must not be empty" })
     }
@@ -32,7 +34,11 @@ router.post('/create-order', isAuth, async (req, res) => {
       prefer: 'return=minimal'
     })
 
+    console.log(order)
+
     const approveLink = JSON.parse(order?.body)?.links?.find(link => link.rel === "approve")
+
+    console.log(approveLink)
 
     const editedCart = cart.map(item => ({
       productId: item._id,
@@ -43,6 +49,8 @@ router.post('/create-order', isAuth, async (req, res) => {
       quantity: item.quantity,
     }))
 
+    console.log(editedCart)
+
     await Order.create({
       userId,
       items: editedCart,
@@ -50,9 +58,11 @@ router.post('/create-order', isAuth, async (req, res) => {
       paymentStatus: "PENDING",
       paypalOrderId: order.result.id
     })
+    console.log()
     return res.json({ approveLink: approveLink })
   } catch (error) {
     logger.error(error.message)
+    console.log(error.stack)
     return res.status(500).json({ error: error })
   }
 
