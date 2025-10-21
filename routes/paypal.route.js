@@ -16,7 +16,7 @@ router.post('/create-order', isAuth, async (req, res) => {
 
     console.log({ cart, total })
 
-    if (!cart) {
+    if (!cart || (Array.isArray(cart) && cart.length === 0)) {
       return res.status(400).json({ message: "cart must not be empty" })
     }
 

@@ -71,7 +71,7 @@ export const getOneProduct = async (req, res, next) => {
 export const createProduct = async (req, res, next) => {
   try {
     let { title, description, price, colors, stock, category, sizes } = req.body;
-
+    console.log(req.body)
     if (!title || !description || !price || !category)
       return res.status(400).json({ message: "Missing required fields" });
 
@@ -90,7 +90,7 @@ export const createProduct = async (req, res, next) => {
       if (err) {
         return res.status(500).json({ message: "error happened while uploading image" })
       }
-
+      console.log(result)
       const createdProduct = await Product.create({
         title,
         description,
@@ -103,11 +103,12 @@ export const createProduct = async (req, res, next) => {
         userId: req.user._id
       })
 
-      return res.json({ data: createdProduct })
+      return res.status(201).json({ data: createdProduct })
     })
     Readable.from(req.file.buffer).pipe(stream)
   } catch (error) {
     logger.error(error.message)
+    console.log(error.stack)
     return res.status(500).json({ message: error });
   }
 }
