@@ -33,7 +33,12 @@ export const register = async (req, res, next) => {
       })
 
       const token = jwt.sign({ _id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '3d' })
-
+      res.cookie('token', token, {
+        maxAge: 3 * 24 * 60 * 60 * 1000,
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        sameSite: "none"
+      })
       return res.status(201).json({ status: 'success', user: newUser, token })
     })
 
