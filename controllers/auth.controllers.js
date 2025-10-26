@@ -84,6 +84,30 @@ export const login = async (req, res, next) => {
     console.log(error.message)
   }
 }
+
+/**
+ * 
+ * @param {*} req 
+ * @param {import("express").Response} res 
+ * @param {*} next 
+ */
+
+export const logout = async (req, res, next) => {
+  try {
+
+    res.clearCookie('token', {
+      maxAge: 3 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    }).json({ message: "cookie has been removed" })
+
+  } catch (error) {
+    console.log(error.stack)
+    return res.sendStatus(500)
+  }
+}
+
 /**
  * 
  * @param {import("express").Request} req 
