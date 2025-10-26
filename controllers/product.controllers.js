@@ -3,6 +3,7 @@ import { logger } from "../index.js"
 import Product from "../models/product.model.js"
 import cloudinary from 'cloudinary'
 import { Readable } from 'stream'
+import { validationResult } from "express-validator"
 
 
 export const getProducts = async (req, res, next) => {
@@ -61,6 +62,22 @@ export const getOneProduct = async (req, res, next) => {
     return res.status(500).json({ message: error.message });
   }
 }
+
+
+const UploadToCloudinary = (fileBuffered) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.v2.uploader.upload_stream({
+      folder: "products",
+      resource_type: "image",        // use auto to detect png/jpg/webp
+      // allowed_formats: ["jpg", "png", "webp"]
+    }, async (err, result) => {
+      if (err) return reject(err);
+      resolve(result);
+    })
+    Readable.from(fileBuffered).pipe(stream)
+  })
+}
+
 /**
  * 
  * @param {import("express").Request} req 
@@ -71,41 +88,36 @@ export const getOneProduct = async (req, res, next) => {
 export const createProduct = async (req, res, next) => {
   try {
     let { title, description, price, colors, stock, category, sizes } = req.body;
-    console.log(req.body)
-    if (!title || !description || !price || !category)
-      return res.status(400).json({ message: "Missing required fields" });
-
-    if (sizes) sizes = JSON.parse(req.body.sizes);
-    if (colors) colors = JSON.parse(req.body.colors)
 
 
-    if (!req.file) return res.status(400).json({ message: 'Image is required' });
+    const result = validationResult(req);
+    if (!result.isEmpty()) {
+      const errors = result.mapped()
+      return res.status(400).json({ errors })
+    }
 
-    const stream = cloudinary.v2.uploader.upload_stream({
-      folder: "products",
-      resource_type: "image",        // use auto to detect png/jpg/webp
-      // allowed_formats: ["jpg", "png", "webp"]
-    }, async (err, result) => {
+    console.log(req.body.colors)
+    // if (sizes) sizes =req.body.sizes);
+    // if (colors) colors = JSON.parse(req.body.colors)
 
-      if (err) {
-        return res.status(500).json({ message: "error happened while uploading image" })
-      }
-      console.log(result)
-      const createdProduct = await Product.create({
-        title,
-        description,
-        price,
-        category,
-        colors,
-        stock,
-        imgPath: result.secure_url,
-        sizes,
-        userId: req.user._id
-      })
+    const uploadedResults = await Promise.all(req.files.map(file => UploadToCloudinary(file.buffer)))
 
-      return res.status(201).json({ data: createdProduct })
+    const imgUrls = uploadedResults.map(r => r.secure_url)
+
+    const createdProduct = await Product.create({
+      title,
+      description,
+      price,
+      category,
+      colors,
+      stock,
+      imgPaths: imgUrls,
+      sizes,
+      userId: req.user._id
     })
-    Readable.from(req.file.buffer).pipe(stream)
+
+    return res.status(201).json({ data: createdProduct })
+
   } catch (error) {
     logger.error(error.message)
     console.log(error.stack)
