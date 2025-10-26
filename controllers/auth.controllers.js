@@ -4,13 +4,28 @@ import User from "../models/user.model.js";
 import { logger } from "../index.js";
 import cloudinary from 'cloudinary'
 import { Readable } from 'stream'
-
+import { validationResult } from "express-validator";
+import { } from 'express-validator'
 export const register = async (req, res, next) => {
   const { fullname, email, password, role } = req.body;
   try {
+
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) {
+      const errors = result.mapped()
+      console.log(req.file)
+      if (!req.file) {
+        errors.image = { type: 'field', value: "", msg: "Field Must Upload Avatar Image", path: "fullname", location: "body" }
+      }
+      return res.status(400).json({ errors })
+    }
+
+
+
     const user = await User.findOne({ email })
     if (user) {
-      return res.status(409).json({ message: "email already exists" })
+      return res.status(409).json({ email: { type: 'field', value: "", msg: "Email Already Exists", path: "email", location: "body" } })
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
@@ -62,13 +77,21 @@ export const login = async (req, res, next) => {
   try {
     const user = await User.findOne({ email })
     if (!user) {
-      return res.status(404).json({ message: "User not found" })
+      return res.status(404).json({
+        errors: {
+          email: "User Not Found , try Signing Up"
+        }
+      })
     }
 
     const result = await bcrypt.compare(password, user.password)
 
     if (!result) {
-      return res.status(400).json({ message: "password is incorrect" })
+      return res.status(400).json({
+        errors: {
+          password: "Password is incorrect"
+        }
+      })
     }
 
     const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '3d' })
