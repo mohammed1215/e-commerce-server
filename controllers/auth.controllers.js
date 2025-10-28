@@ -157,3 +157,46 @@ export const authMe = async (req, res) => {
     }
   }
 }
+/**
+ * 
+ * @param {import("express").Request} req 
+ * @param {import("express").Response} res 
+ * @returns 
+ */
+export const updateUserData = async (req, res) => {
+  try {
+    const { fullname } = req.body;
+    const userId = req.user;
+    const avatar = req.file
+
+    console.log(req.file)
+
+    const oldUser = await User.findById(userId)
+
+    const stream = cloudinary.v2.uploader.upload_stream({
+      folder: 'avatar',
+      resource_type: "image"
+    }, async (err, result) => {
+      // result.secure_url
+      if (err) {
+        return res.status(500).json({ message: "error uploading image" })
+      }
+      oldUser.fullname = fullname ?? oldUser.fullname;
+      oldUser.imgPath = result.secure_url;
+      await oldUser.save()
+      return res.status(200).json({ message: "updated successfully" })
+    })
+    if (!avatar) {
+      oldUser.fullname = fullname ?? oldUser.fullname;
+      await oldUser.save();
+      return res.json({ message: "updated successfully" })
+    }
+
+    Readable.from(avatar.buffer).pipe(stream)
+
+
+  } catch (error) {
+    console.log(error.stack);
+    return res.status(500).json({ message: "error" })
+  }
+}

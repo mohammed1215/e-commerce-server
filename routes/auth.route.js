@@ -1,7 +1,8 @@
 import { Router } from 'express'
-import { login, register, authMe, logout } from '../controllers/auth.controllers.js';
+import { login, register, authMe, logout, updateUserData } from '../controllers/auth.controllers.js';
 import { upload } from '../config/multer.js';
 import { body } from 'express-validator';
+import { isAuth } from '../middlewares/isAuth.js';
 
 const VALID_ROLES = ['USER', 'MERCHANT']
 
@@ -30,4 +31,5 @@ router.post('/signup', upload.single('image'), [
 router.post('/login', login)
 router.get('/me', authMe)
 router.post('/logout', logout)
+router.post('/update', isAuth, upload.single('image'), updateUserData)
 export default router
