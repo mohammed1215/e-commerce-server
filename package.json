@@ -12,6 +12,7 @@
 		"jsonwebtoken": "^9.0.2",
 		"mongoose": "^8.19.0",
 		"multer": "^2.0.2",
+		"nodemailer": "^7.0.10",
 		"winston": "^3.18.3"
 	},
 	"name": "server",
