@@ -151,7 +151,7 @@ export const login = async (req, res, next) => {
     return res.status(201).json({ status: 'success', user, token })
 
   } catch (error) {
-    console.log(error.message)
+    console.log(error.stack)
   }
 }
 
