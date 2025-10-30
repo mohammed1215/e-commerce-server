@@ -25,8 +25,7 @@ const transporter = nodemailer.createTransport({
  * @returns {Promise<import('nodemailer/lib/smtp-transport').SentMessageInfo>}
  */
 function transporting(token, receiver) {
-  const data = os.networkInterfaces()["Wi-Fi"].find(obj => obj.family === "IPv4");
-  const link = process.env.SERVER_URL ?? data.address
+  const link = process.env.SERVER_URL
   return new Promise((resolve, reject) => {
     transporter.sendMail({
       from: 'mohammedelbanawey264@gmail.com',
@@ -34,7 +33,7 @@ function transporting(token, receiver) {
       subject: "Verify Your Email",
       html: `
       <h2>Verfy Your Email</h2>
-        <p>to verify the email press <a href="http://${link}:5000/auth/verify?token=${token}">here</a></p>
+        <p>to verify the email press <a href="https://${link}/auth/verify?token=${token}">here</a></p>
         `,
     }, (err, info) => {
       if (err) {
