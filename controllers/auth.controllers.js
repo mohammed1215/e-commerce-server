@@ -6,6 +6,47 @@ import cloudinary from 'cloudinary'
 import { Readable } from 'stream'
 import { validationResult } from "express-validator";
 import { } from 'express-validator'
+import nodemailer from 'nodemailer'
+import os from 'os'
+
+const transporter = nodemailer.createTransport({
+  host: `smtp.gmail.com`,
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.TRANSPORTER_EMAIL,
+    pass: process.env.TRANSPORTER_PASS,
+  },
+});
+/**
+ * 
+ * @param {String} token 
+ * @param {String} receiver 
+ * @returns {Promise<import('nodemailer/lib/smtp-transport').SentMessageInfo>}
+ */
+function transporting(token, receiver) {
+  const data = os.networkInterfaces()["Wi-Fi"].find(obj => obj.family === "IPv4");
+  const link = process.env.SERVER_URL ?? data.address
+  return new Promise((resolve, reject) => {
+    transporter.sendMail({
+      from: 'mohammedelbanawey264@gmail.com',
+      to: receiver,
+      subject: "Verify Your Email",
+      html: `
+      <h2>Verfy Your Email</h2>
+        <p>to verify the email press <a href="http://${link}:5000/auth/verify?token=${token}">here</a></p>
+        `,
+    }, (err, info) => {
+      if (err) {
+        console.error('Email error:', err);
+        return reject(err)
+      }
+
+      return resolve(info)
+    })
+  })
+}
+
 export const register = async (req, res, next) => {
   const { fullname, email, password, role } = req.body;
   try {
@@ -44,17 +85,19 @@ export const register = async (req, res, next) => {
         email,
         password: hashedPassword,
         role,
-        imgPath: result.secure_url
+        imgPath: result.secure_url,
+        isVerified: false
       })
 
       const token = jwt.sign({ _id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '3d' })
-      res.cookie('token', token, {
-        maxAge: 3 * 24 * 60 * 60 * 1000,
-        secure: true,
-        httpOnly: true,
-        sameSite: "none"
+      transporting(token, newUser.email).then(response => {
+        return res.status(201).json({ status: 'success', message: "Verify your email" })
+      }).catch(err => {
+        console.log(err.stack)
+        return res.status(500).json({ status: 'fail', message: 'Failed to send verification email' });
       })
-      return res.status(201).json({ status: 'success', user: newUser, token })
+
+
     })
 
     Readable.from(req.file.buffer).pipe(stream)
@@ -94,7 +137,11 @@ export const login = async (req, res, next) => {
       })
     }
 
+
     const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '3d' })
+    if (!user.isVerified) {
+      return transporting(token, user.email).then(response => res.json({ message: "Your email is unverified, check your email" }))
+    }
     res.cookie('token', token, {
       maxAge: 3 * 24 * 60 * 60 * 1000,
       secure: true,
@@ -198,5 +245,23 @@ export const updateUserData = async (req, res) => {
   } catch (error) {
     console.log(error.stack);
     return res.status(500).json({ message: "error" })
+  }
+}
+
+export const verifyEmail = async (req, res) => {
+  try {
+    const token = req.query.token;
+    console.log(token)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+
+    const user = await User.findById(decoded._id)
+    if (user.isVerified) {
+      return res.send(`<h1 style="color:gray;text-align:center;">Your Account is Already Verified</h1>`)
+    }
+    user.isVerified = true;
+    await user.save()
+    return res.send(`<h1 style="color:green;text-align:center;">Account Has Been Verified Successfully</h1>`)
+  } catch (error) {
+    return res.status(500).json({ error })
   }
 }
