@@ -76,3 +76,16 @@ app.use("/auth", authRouter)
 app.use(productRouter)
 app.use('/reviews', reviewRouter)
 app.use('/orders', paypalRouter)
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  logger.error(err.stack); // Log the full stack trace
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+  res.status(statusCode).json({
+    success: false,
+    statusCode,
+    message,
+  });
+});
+export default app

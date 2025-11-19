@@ -7,42 +7,38 @@ import { Readable } from 'stream'
 import { validationResult } from "express-validator";
 import { } from 'express-validator'
 import nodemailer from 'nodemailer'
+import { Resend } from "resend";
 import os from 'os'
 
 const transporter = nodemailer.createTransport({
   host: `smtp.gmail.com`,
-  port: 587,
-  secure: false,
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.TRANSPORTER_EMAIL,
     pass: process.env.TRANSPORTER_PASS,
   },
 });
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 /**
  * 
  * @param {String} token 
  * @param {String} receiver 
- * @returns {Promise<import('nodemailer/lib/smtp-transport').SentMessageInfo>}
+ * @returns {Promise<import('resend').CreateEmailResponse>}
  */
 function transporting(token, receiver) {
   const link = process.env.SERVER_URL
-  return new Promise((resolve, reject) => {
-    transporter.sendMail({
-      from: 'mohammedelbanawey264@gmail.com',
-      to: receiver,
-      subject: "Verify Your Email",
-      html: `
+  console.log('sending email')
+  return transporter.sendMail({
+    from: 'E-Commerce App <mohammedelbanawey264@gmail.com>',
+    to: receiver,
+    subject: "Verify Your Email",
+    html: `
       <h2>Verfy Your Email</h2>
-        <p>to verify the email press <a href="https://${link}/auth/verify?token=${token}">here</a></p>
+        <p>to verify the email press <a href="${link}/auth/verify?token=${token}">here</a></p>
         `,
-    }, (err, info) => {
-      if (err) {
-        console.error('Email error:', err);
-        return reject(err)
-      }
-
-      return resolve(info)
-    })
   })
 }
 
@@ -138,8 +134,16 @@ export const login = async (req, res, next) => {
 
 
     const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '3d' })
+    console.log(user.isVerified)
     if (!user.isVerified) {
-      return transporting(token, user.email).then(response => res.json({ message: "Your email is unverified, check your email" }))
+      try {
+        await transporting(token, user.email)
+        console.log('email got sent')
+        return res.status(401).json({ message: "Your email is unverified, check your email" })
+      } catch (error) {
+        return res.status(500).json({ error: err })
+
+      }
     }
     res.cookie('token', token, {
       maxAge: 3 * 24 * 60 * 60 * 1000,
